@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indian Rummy Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 800px;
+            margin: 30px auto;
+        }
+        h1 {
+            color: #333;
+        }
+        .points {
+            font-size: 20px;
+            margin-bottom: 15px;
+        }
+        .timer {
+            font-size: 18px;
+            color: #ff9800;
+            margin-bottom: 15px;
+        }
+        .board {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+        .card {
+            width: 100px;
+            height: 140px;
+            background: #f0f0f0;
+            border: 2px solid #ccc;
+            margin: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .card:hover {
+            transform: scale(1.1);
+        }
+        .history {
+            text-align: left;
+            margin-top: 20px;
+        }
+        .history h2 {
+            font-size: 18px;
+        }
+        .history ul {
+            list-style: none;
+            padding: 0;
+        }
+        .history li {
+            background: #f5f5f5;
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .winner {
+            color: #4CAF50;
+            font-size: 22px;
+        }
+        .play-again {
+            background: #6200ea;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background 0.3s;
+            margin-top: 20px;
+        }
+        .play-again:hover {
+            background: #3700b3;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Indian Rummy Game 🎯</h1>
+
+    <div class="points">
+        Player Points: <span id="player-points">1000</span> | Computer Points: <span id="computer-points">1000</span>
+    </div>
+
+    <div class="timer" id="timer">Time Left: 10s</div>
+
+    <div class="board" id="board"></div>
+
+    <div class="winner" id="winner"></div>
+
+    <button class="play-again" onclick="restartGame()">Play Again</button>
+
+    <div class="history">
+        <h2>Win/Loss History (Last 5 Rounds):</h2>
+        <ul id="history-list"></ul>
+    </div>
+</div>
+
+<script>
+    const board = document.getElementById("board");
+    const timerDisplay = document.getElementById("timer");
+    const winnerDisplay = document.getElementById("winner");
+    const playerPointsDisplay = document.getElementById("player-points");
+    const computerPointsDisplay = document.getElementById("computer-points");
+    const historyList = document.getElementById("history-list");
+
+    let playerPoints = 1000;
+    let computerPoints = 1000;
+    let timer;
+    let timeLeft = 10;
+    let history = [];
+    let playerHand = [];
+    let computerHand = [];
+    const deck = createDeck();
+
+    function createDeck() {
+        const suits = ["♥", "♦", "♣", "♠"];
+        const values = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+        let deck = [];
+        for (let suit of suits) {
+            for (let value of values) {
+                deck.push({ suit, value });
+            }
+        }
+        return deck.sort(() => Math.random() - 0.5);
+    }
+
+    function dealCards() {
+        playerHand = deck.slice(0, 10);
+        computerHand = deck.slice(10, 20);
+        renderBoard();
+    }
+
+    function renderBoard() {
+        board.innerHTML = "";
+
+        // Render player hand
+        playerHand.forEach((card, index) => {
+            const cardDiv = document.createElement("div");
+            cardDiv.classList.add("card");
+            cardDiv.textContent = `${card.value}${card.suit}`;
+            cardDiv.onclick = () => makeMove(index);
+            board.appendChild(cardDiv);
+        });
+
+        // Render computer hand as hidden
+        for (let i = 0; i < 10; i++) {
+            const cardDiv = document.createElement("div");
+            cardDiv.classList.add("card");
+            cardDiv.textContent = "🂠";
+            board.appendChild(cardDiv);
+        }
+    }
+
+    function startTimer() {
+        clearInterval(timer);
+        timeLeft = 10;
+        timerDisplay.textContent = `Time Left: ${timeLeft}s`;
+
+        timer = setInterval(() => {
+            timeLeft--;
+            timerDisplay.textContent = `Time Left: ${timeLeft}s`;
+
+            if (timeLeft <= 0) {
+                switchTurn();
+            }
+        }, 1000);
+    }
+
+    function makeMove(index) {
+        const playerCard = playerHand[index];
+        const computerCard = computerHand[Math.floor(Math.random() * computerHand.length)];
+
+        const playerValue = getCardValue(playerCard.value);
+        const computerValue = getCardValue(computerCard.value);
+
+        let winner = "";
+
+        if (playerValue > computerValue) {
+            winner = "Player";
+            playerPoints += 10;
+            computerPoints -= 10;
+        } else if (playerValue < computerValue) {
+            winner = "Computer";
+            playerPoints -= 10;
+            computerPoints += 10;
+        } else {
+            winner = "Draw";
+            playerPoints += 5;
+            computerPoints += 5;
+        }
+
+        updatePoints(winner);
+        updateHistory(winner);
+        renderBoard();
+        startTimer();
+    }
+
+    function getCardValue(value) {
+        if (["J", "Q", "K"].includes(value)) return 10;
+        if (value === "A") return 1;
+        return parseInt(value);
+    }
+
+    function updatePoints(winner) {
+        playerPointsDisplay.textContent = playerPoints;
+        computerPointsDisplay.textContent = computerPoints;
+        winnerDisplay.textContent = `${winner} Wins! 🎉`;
+    }
+
+    function updateHistory(winner) {
+        history.unshift(`${winner} → Player: ${playerPoints} pts | Computer: ${computerPoints} pts`);
+        if (history.length > 5) history.pop();
+        historyList.innerHTML = history.map(item => `<li>${item}</li>`).join("");
+    }
+
+    function restartGame() {
+        clearInterval(timer);
+        dealCards();
+        startTimer();
+    }
+
+    window.onload = () => {
+        dealCards();
+        startTimer();
+    };
+</script>
+
+</body>
+</html>
